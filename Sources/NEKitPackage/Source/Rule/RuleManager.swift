@@ -59,22 +59,41 @@ open class RuleManager {
 
      - returns: The matched configured adapter.
      */
-    func match(_ session: ConnectSession) -> AdapterFactory! {
+    func match(_ session: ConnectSession, queue: DispatchQueue, completion: @escaping (AdapterFactory?) -> Void) {
         if session.matchedRule != nil {
             observer?.signal(.ruleMatched(session, rule: session.matchedRule!))
-            return session.matchedRule!.match(session)
+            session.matchedRule!.match(session) { adapterFactory in
+                queue.async {
+                    completion(adapterFactory)
+                }
+            }
+            return
         }
-
-        for rule in rules {
-            if let adapterFactory = rule.match(session) {
-                observer?.signal(.ruleMatched(session, rule: rule))
-
-                session.matchedRule = rule
-                return adapterFactory
-            } else {
-                observer?.signal(.ruleDidNotMatch(session, rule: rule))
+        
+        iterateRules(iterator: rules.makeIterator(), session: session, queue: queue, completion: completion)
+    }
+    
+    private func iterateRules(iterator: IndexingIterator<[Rule]>,
+                              session: ConnectSession,
+                              queue: DispatchQueue,
+                              completion: @escaping (AdapterFactory?) -> Void) {
+        var iterator = iterator
+        guard let rule = iterator.next() else {
+            completion(nil)
+            return
+        }
+        
+        rule.match(session) { [unowned self] adapterFactory in
+            queue.async { [unowned self] in
+                if let adapterFactory {
+                    observer?.signal(.ruleMatched(session, rule: rule))
+                    session.matchedRule = rule
+                    completion(adapterFactory)
+                } else {
+                    observer?.signal(.ruleDidNotMatch(session, rule: rule))
+                    iterateRules(iterator: iterator, session: session, queue: queue, completion: completion)
+                }
             }
         }
-        return nil // this should never happens
     }
 }

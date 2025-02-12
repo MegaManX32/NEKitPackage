@@ -59,10 +59,11 @@ open class CountryRule: Rule {
 
      - returns: The configured adapter if matched, return `nil` if not matched.
      */
-    override open func match(_ session: ConnectSession) -> AdapterFactory? {
+    override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
         if (session.country != countryCode) != match {
-            return adapterFactory
+            completion(adapterFactory)
+            return
         }
-        return nil
+        completion(adapterFactory)
     }
 }

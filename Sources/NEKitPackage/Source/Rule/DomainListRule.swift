@@ -66,11 +66,12 @@ open class DomainListRule: Rule {
 
      - returns: The configured adapter if matched, return `nil` if not matched.
      */
-    override open func match(_ session: ConnectSession) -> AdapterFactory? {
+    override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
         if matchDomain(session.host) {
-            return adapterFactory
+            completion(adapterFactory)
+            return
         }
-        return nil
+        completion(nil)
     }
 
     fileprivate func matchDomain(_ domain: String) -> Bool {

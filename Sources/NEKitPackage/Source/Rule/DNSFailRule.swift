@@ -50,11 +50,11 @@ open class DNSFailRule: Rule {
 
      - returns: The configured adapter.
      */
-    override open func match(_ session: ConnectSession) -> AdapterFactory? {
+    override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
         if session.ipAddress == "" {
-            return adapterFactory
+            completion(adapterFactory)
         } else {
-            return nil
+            completion(nil)
         }
     }
 }
