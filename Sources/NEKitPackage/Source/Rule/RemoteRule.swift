@@ -81,7 +81,7 @@ open class RemoteRule: Rule {
                 return
             }
             
-            if let data = data, let response = try? JSONDecoder().decode(APIResponse.self, from: data) {
+            if let data = data, let response = try? JSONDecoder().decode(RemoteRuleResponse.self, from: data) {
                 completion(.success(response.result))
             } else {
                 let error = NSError(domain: "Empty response", code: 0, userInfo: nil)
@@ -92,7 +92,7 @@ open class RemoteRule: Rule {
     }
 }
 
-private struct APIResponse: Decodable {
+private struct RemoteRuleResponse: Decodable {
     let result: Bool
 }
 
