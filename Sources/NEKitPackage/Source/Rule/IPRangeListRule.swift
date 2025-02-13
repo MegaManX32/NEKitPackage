@@ -60,16 +60,18 @@ open class IPRangeListRule: Rule {
 
      - returns: The configured adapter if matched, return `nil` if not matched.
      */
-    override open func match(_ session: ConnectSession) -> AdapterFactory? {
+    override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
         guard let ip = IPAddress(fromString: session.ipAddress) else {
-            return nil
+            completion(nil)
+            return
         }
 
         for range in ranges {
             if range.contains(ip: ip) {
-                return adapterFactory
+                completion(adapterFactory)
+                return
             }
         }
-        return nil
+        completion(nil)
     }
 }

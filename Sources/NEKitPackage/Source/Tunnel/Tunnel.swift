@@ -172,10 +172,13 @@ public class Tunnel: NSObject, SocketDelegate {
         }
         
         let manager = RuleManager.currentManager
-        let factory = manager.match(session)!
-        adapterSocket = factory.getAdapterFor(session: session)
-        adapterSocket!.delegate = self
-        adapterSocket!.openSocketWith(session: session)
+        
+        manager.match(session, queue: QueueFactory.getQueue()) { [weak self] factory in
+            guard let self, let factory else { return }
+            adapterSocket = factory.getAdapterFor(session: session)
+            adapterSocket!.delegate = self
+            adapterSocket!.openSocketWith(session: session)
+        }
     }
     
     public func didBecomeReadyToForwardWith(socket: SocketProtocol) {

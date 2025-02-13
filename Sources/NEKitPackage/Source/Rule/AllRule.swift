@@ -41,8 +41,8 @@ open class AllRule: Rule {
      - parameter session: connect session to match.
 
      - returns: The configured adapter.
-     */
-    override open func match(_ session: ConnectSession) -> AdapterFactory? {
-        return adapterFactory
+     */    
+    override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
+        completion(adapterFactory)
     }
 }

@@ -31,7 +31,7 @@ open class Rule: CustomStringConvertible {
 
      - returns: The configured adapter if matched, return `nil` if not matched.
      */
-    open func match(_ session: ConnectSession) -> AdapterFactory? {
-        return nil
+    open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
+        completion(nil)
     }
 }
