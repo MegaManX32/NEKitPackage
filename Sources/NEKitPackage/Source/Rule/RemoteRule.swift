@@ -40,7 +40,12 @@ open class RemoteRule: Rule {
      - returns: The configured adapter if matched, return `nil` if not matched.
      */
     override open func match(_ session: ConnectSession, completion: @escaping (AdapterFactory?) -> Void) {
-        checkDomain(session.host) { [unowned self] result in
+        checkRemote(session.host) { [weak self] result in
+            guard let self else {
+                completion(nil)
+                return
+            }
+            
             switch result {
             case .success(let allowed):
                 completion(allowed ? adapterFactory : nil)
@@ -50,38 +55,40 @@ open class RemoteRule: Rule {
         }
     }
     
-    private func checkDomain(_ domain: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        Task {
-            let result = await checkRemote(domain)
-            completion(result)
-        }
-    }
-    
-    private func checkRemote(_ domain: String) async -> Result<Bool, Error> {
+    private func checkRemote(_ domain: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = URL(string: hostURL)!
-        let parameters: [String: String] = ["domain": domain]
-
+        let parameters: [String: String] = ["name": domain]
+        
         guard let jsonData = try? JSONSerialization.data(withJSONObject: parameters) else {
-            return .failure(NSError(domain: "Invalid JSON", code: 0, userInfo: nil))
+            completion(.failure(NSError(domain: "Invalid JSON", code: 0, userInfo: nil)))
+            return
         }
-
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                return .failure(NSError(domain: "HTTP Error", code: httpResponse.statusCode, userInfo: nil))
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
             }
             
-            let decodedResponse = try JSONDecoder().decode(APIResponse.self, from: data)
-            return .success(decodedResponse.result)
-        } catch {
-            return .failure(error)
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                let error = NSError(domain: "HTTP Error", code: httpResponse.statusCode, userInfo: nil)
+                completion(.failure(error))
+                return
+            }
+            
+            if let data = data, let response = try? JSONDecoder().decode(APIResponse.self, from: data) {
+                completion(.success(response.result))
+            } else {
+                let error = NSError(domain: "Empty response", code: 0, userInfo: nil)
+                completion(.failure(error))
+            }
         }
+        task.resume()
     }
 }
 

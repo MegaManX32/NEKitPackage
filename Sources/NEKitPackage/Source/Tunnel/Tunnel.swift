@@ -173,8 +173,9 @@ public class Tunnel: NSObject, SocketDelegate {
         
         let manager = RuleManager.currentManager
         
-        manager.match(session, queue: QueueFactory.getQueue()) { [unowned self] factory in
-            adapterSocket = factory!.getAdapterFor(session: session)
+        manager.match(session, queue: QueueFactory.getQueue()) { [weak self] factory in
+            guard let self, let factory else { return }
+            adapterSocket = factory.getAdapterFor(session: session)
             adapterSocket!.delegate = self
             adapterSocket!.openSocketWith(session: session)
         }

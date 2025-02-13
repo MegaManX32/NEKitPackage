@@ -83,8 +83,13 @@ open class RuleManager {
             return
         }
         
-        rule.match(session) { [unowned self] adapterFactory in
-            queue.async { [unowned self] in
+        rule.match(session) { adapterFactory in
+            queue.async { [weak self] in
+                guard let self else {
+                    completion(nil)
+                    return
+                }
+                
                 if let adapterFactory {
                     observer?.signal(.ruleMatched(session, rule: rule))
                     session.matchedRule = rule
